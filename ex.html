@@ -1,0 +1,15 @@
+<html>
+<head>
+  <title><TMPL_VAR NAME=title></title>
+</head>
+<body>
+  <p><TMPL_VAR NAME=text><TMPL_VAR NAME=text_here></p>
+  <TMPL_IF NAME=show_this>
+  <TMPL_LOOP NAME=l1>
+    <div></div>
+    <TMPL_VAR NAME=inner_var>
+    <div>text here</div>
+  </TMPL_LOOP>
+  </TMPL_IF>
+</body>
+</html>

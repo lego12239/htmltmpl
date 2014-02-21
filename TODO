@@ -1,0 +1,2 @@
+1. Add a throw for not opened/closed loop,if?
+2. Add a TH to return tuple of make_tmpl (if tmpl input is a string, this is needed).
