@@ -1,2 +1,6 @@
 1. Add a throw for not opened/closed loop,if?
-2. Add a TH to return tuple of make_tmpl (if tmpl input is a string, this is needed).
+2. Add a TH to return tuple of make_tmpl (if tmpl input is a string, this is
+   needed, because it is changed during a read).
+3. Add DEFAULT attribute to a TMPL_VAR.
+4. Add TMPL_ELSE.
+5. Add TMPL_UNLESS.
