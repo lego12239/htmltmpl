@@ -363,7 +363,7 @@ subst_tmpl_var(Var, Data) ->
     {ok, Var_name} = tag_attr_get(Var, "NAME"),
     subst_tmpl_var_(Var_name, Data).
 
-subst_tmpl_var_(Var_name, []) ->
+subst_tmpl_var_(_Var_name, []) ->
     {ok, ""};
 subst_tmpl_var_(Var_name, [H|T]) ->
     {Name, Value} = H,
@@ -387,7 +387,7 @@ subst_tmpl_loop(Loop, Data) ->
     {_, _, Loop_data} = Loop,
     subst_tmpl_loop(Loop_name, Loop_data, Data).
 
-subst_tmpl_loop(Loop_name, _, []) ->
+subst_tmpl_loop(_Loop_name, _, []) ->
     {ok, ""};
 subst_tmpl_loop(Loop_name, Loop, [H|T]) ->
     {Name, Value} = H,
@@ -413,7 +413,7 @@ subst_tmpl_if(If, Data) ->
     {_, _, If_data} = If,
     subst_tmpl_if(If_name, If_data, Data, Data).
 
-subst_tmpl_if(If_name, _If, [], _Data_full) ->
+subst_tmpl_if(_If_name, _If, [], _Data_full) ->
     {ok, ""};
 subst_tmpl_if(If_name, If, [H|T], Data_full) ->
     {Name, Value} = H,
