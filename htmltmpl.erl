@@ -180,8 +180,14 @@ hdlr_loop_attr_end(Tmpl, Tstate, _Str_buf, _Str) ->
     {start_inner, Tmpl, Tstate_new}.
 
 
-hdlr_loop_end(Tmpl, Tstate, _Str_buf, _Str) ->
-    {stop, Tmpl, Tstate}.
+hdlr_loop_end(Tmpl, Tstate, Str_buf, _Str) ->
+    case string:len(Str_buf) of
+	0 ->
+	    Tmpl_new = Tmpl;
+	_ ->
+	    Tmpl_new = [{text, Str_buf}|Tmpl]
+    end,
+    {stop, Tmpl_new, Tstate}.
 
 
 %%
@@ -202,8 +208,14 @@ hdlr_if_attr_end(Tmpl, Tstate, _Str_buf, _Str) ->
     {start_inner, Tmpl, Tstate_new}.
 
 
-hdlr_if_end(Tmpl, Tstate, _Str_buf, _Str) ->
-    {stop, Tmpl, Tstate}.
+hdlr_if_end(Tmpl, Tstate, Str_buf, _Str) ->
+    case string:len(Str_buf) of
+	0 ->
+	    Tmpl_new = Tmpl;
+	_ ->
+	    Tmpl_new = [{text, Str_buf}|Tmpl]
+    end,
+    {stop, Tmpl_new, Tstate}.
 
 
 %%
