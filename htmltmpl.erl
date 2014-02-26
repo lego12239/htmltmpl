@@ -368,8 +368,12 @@ subst_tmpl_var_(Var_name, []) ->
 subst_tmpl_var_(Var_name, [H|T]) ->
     {Name, Value} = H,
     case string:equal(Name, Var_name) of
-	true ->
+	true when is_list(Value) ->
 	    {ok, Value};
+	true when is_float(Value) ->
+	    {ok, float_to_list(Value)};
+	true when is_integer(Value) ->
+	    {ok, integer_to_list(Value)};
 	false ->
 	    subst_tmpl_var_(Var_name, T)
     end.
