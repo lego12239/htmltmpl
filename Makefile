@@ -6,6 +6,7 @@ htmltmpl.beam: htmltmpl.erl
 
 clean:
 	find . -name '*~' -exec rm -f '{}' \+
+	rm -f htmltmpl.beam test/test.beam
 
 test: htmltmpl.beam
 	cd test && \
