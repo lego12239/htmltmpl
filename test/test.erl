@@ -51,5 +51,12 @@ start() ->
 	 #test{id="03",
 	       title="Test TMPL_LOOP",
 	       data=[{"loop1", [[{"v1", "1"}],
-				[{"v1", "2"}]]}]}],
+				[{"v1", "2"}]]}]},
+	 #test{id="04",
+	       title="Test TMPL_LOOP with an empty loop data",
+	       data=[{"loop1", []}]},
+	 #test{id="05",
+	       title="Test TMPL_LOOP without needed var",
+	       data=[{"loop1", [[{"v1", "1"}],
+				[]]}]}],
     do_test(T, length(T), 1, 0).
