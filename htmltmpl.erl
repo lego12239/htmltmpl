@@ -352,7 +352,7 @@ subst_tmpl_var(Var, Data) ->
     subst_tmpl_var_(Var_name, Data).
 
 subst_tmpl_var_(Var_name, []) ->
-    throw({variable_not_exist, Var_name});
+    {ok, ""};
 subst_tmpl_var_(Var_name, [H|T]) ->
     {Name, Value} = H,
     case string:equal(Name, Var_name) of
@@ -372,7 +372,7 @@ subst_tmpl_loop(Loop, Data) ->
     subst_tmpl_loop(Loop_name, Loop_data, Data).
 
 subst_tmpl_loop(Loop_name, _, []) ->
-    throw({loop_not_exist, Loop_name});
+    {ok, ""};
 subst_tmpl_loop(Loop_name, Loop, [H|T]) ->
     {Name, Value} = H,
     case string:equal(Name, Loop_name) of
@@ -398,7 +398,7 @@ subst_tmpl_if(If, Data) ->
     subst_tmpl_if(If_name, If_data, Data, Data).
 
 subst_tmpl_if(If_name, _If, [], _Data_full) ->
-    throw({if_not_exist, If_name});
+    {ok, ""};
 subst_tmpl_if(If_name, If, [H|T], Data_full) ->
     {Name, Value} = H,
     case string:equal(Name, If_name) of
