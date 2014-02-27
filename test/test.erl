@@ -24,22 +24,36 @@ read_master_html(File) ->
     end.
 
 
-do_test([], Len, _Num, Passed_num) ->
-    io:format("~nTotal: ~w/~w~n", [Passed_num, Len]);
+do_test([], _Num, Passed_num, _F) ->
+    Passed_num;
 
-do_test([H|T], Len, Num, Passed_num) ->
-    io:format("~w/~w: ~s  ", [Num, Len, H#test.title]),
+do_test([H|T], Num, Passed_num, F_report_start) ->
+    F_report_start(Num, H#test.title),
     Result = read_master_html(H#test.id ++ ".html"),
     Output = make_html(H#test.id ++ ".tmpl", H#test.data),
     case Result =:= Output of
 	true ->
-	    io:format("ok~n"),
+	    report_status("ok"),
 	    Passed_num_new = Passed_num + 1;
 	false ->
-	    io:format("fail~n"),
+	    report_status("fail"),
 	    Passed_num_new = Passed_num
     end,
-    do_test(T, Len, Num + 1, Passed_num_new).
+    do_test(T, Num + 1, Passed_num_new, F_report_start).
+
+
+make_report_fun(T) ->
+    Len = length(T),
+    Title_maxlen = lists:max(lists:map(fun(A) -> length(A#test.title) end, T)),
+    Io_str = "~w/~w: ~-" ++ integer_to_list(Title_maxlen) ++ "...s ",
+    fun (Num, Title) ->
+	    io:format(Io_str, [Num, Len, Title])
+    end.
+
+
+report_status(Status) ->
+    io:format("~s~n", [Status]).
+
 
 start() ->
     T = [#test{id="01",
@@ -88,4 +102,6 @@ start() ->
 	       title="Test TMPL_IF with no var data",
 	       data=[]}
 	],
-    do_test(T, length(T), 1, 0).
+    Report_fun = make_report_fun(T),
+    Passed_num = do_test(T, 1, 0, Report_fun),
+    io:format("~nPassed: ~w/~w~n", [Passed_num, length(T)]).
