@@ -342,17 +342,11 @@ open(Fname) ->
 %%
 tag_attr_get(Tag, Attr_name) ->
     {_Name, Attrs, _Data} = Tag,
-    tag_attr_get_(Attrs, Attr_name).
-
-tag_attr_get_([], Attr_name) ->
-    {error, "Attribute " ++ Attr_name ++ " not found"};
-tag_attr_get_([H|T], Attr_name) ->
-    {Name, Value} = H,
-    case string:equal(Attr_name, Name) of
-	true ->
-	    {ok, Value};
+    case lists:keyfind(Attr_name, 1, Attrs) of
 	false ->
-	    tag_attr_get_(T, Attr_name)
+	    {error, "Attribute " ++ Attr_name ++ " not found"};
+	{Attr_name, Value} ->
+	    {ok, Value}
     end.
 
 
@@ -361,21 +355,15 @@ tag_attr_get_([H|T], Attr_name) ->
 %%
 subst_tmpl_var(Var, Data) ->
     {ok, Var_name} = tag_attr_get(Var, "NAME"),
-    subst_tmpl_var_(Var_name, Data).
-
-subst_tmpl_var_(_Var_name, []) ->
-    {ok, ""};
-subst_tmpl_var_(Var_name, [H|T]) ->
-    {Name, Value} = H,
-    case string:equal(Name, Var_name) of
-	true when is_list(Value) ->
-	    {ok, Value};
-	true when is_float(Value) ->
-	    {ok, float_to_list(Value)};
-	true when is_integer(Value) ->
-	    {ok, integer_to_list(Value)};
+    case lists:keyfind(Var_name, 1, Data) of
 	false ->
-	    subst_tmpl_var_(Var_name, T)
+	    {ok, ""};
+	{Var_name, Value} when is_list(Value) ->
+	    {ok, Value};
+	{Var_name, Value} when is_float(Value) ->
+	    {ok, float_to_list(Value)};
+	{Var_name, Value} when is_integer(Value) ->
+	    {ok, integer_to_list(Value)}
     end.
 
 
@@ -384,19 +372,17 @@ subst_tmpl_var_(Var_name, [H|T]) ->
 %%
 subst_tmpl_loop(Loop, Data) ->
     {ok, Loop_name} = tag_attr_get(Loop, "NAME"),
-    {_, _, Loop_data} = Loop,
-    subst_tmpl_loop(Loop_name, Loop_data, Data).
-
-subst_tmpl_loop(_Loop_name, _, []) ->
-    {ok, ""};
-subst_tmpl_loop(Loop_name, Loop, [H|T]) ->
-    {Name, Value} = H,
-    case string:equal(Name, Loop_name) of
-	true ->
-	    subst_tmpl_loop_(Loop, Value, "");
+    {_, _, Loop_tmpl} = Loop,
+    case lists:keyfind(Loop_name, 1, Data) of
 	false ->
-	    subst_tmpl_loop(Loop_name, Loop, T)
+	    {ok, ""};
+	{Loop_name, Value} ->
+	    subst_tmpl_loop_(Loop_tmpl, Value)
     end.
+
+
+subst_tmpl_loop_(Loop, Data) ->
+    subst_tmpl_loop_(Loop, Data, "").
 
 subst_tmpl_loop_(_, [], Str) ->
     {ok, Str};
@@ -410,23 +396,17 @@ subst_tmpl_loop_(Loop, [H|T], Str) ->
 %%
 subst_tmpl_if(If, Data) ->
     {ok, If_name} = tag_attr_get(If, "NAME"),
-    {_, _, If_data} = If,
-    subst_tmpl_if(If_name, If_data, Data, Data).
-
-subst_tmpl_if(_If_name, _If, [], _Data_full) ->
-    {ok, ""};
-subst_tmpl_if(If_name, If, [H|T], Data_full) ->
-    {Name, Value} = H,
-    case string:equal(Name, If_name) of
-	true ->
+    {_, _, If_tmpl} = If,
+    case lists:keyfind(If_name, 1, Data) of
+	false ->
+	    {ok, ""};
+	{If_name, Value} ->
 	    case Value of
 		true ->
-		    {ok, htmltmpl:apply(If, Data_full, "")};
+		    {ok, htmltmpl:apply(If_tmpl, Data, "")};
 		false ->
 		    {ok, ""}
-	    end;
-	false ->
-	    subst_tmpl_if(If_name, If, T, Data_full)
+	    end
     end.
 
 
