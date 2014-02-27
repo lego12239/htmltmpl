@@ -1,0 +1,15 @@
+<html>
+<body>
+  <TMPL_LOOP NAME=loop1>
+    start
+    <TMPL_VAR NAME=v1>
+    middle
+    <TMPL_LOOP NAME=loop2>
+      inner_start
+      <TMPL_VAR NAME=v2>
+      inner_end
+    </TMPL_LOOP>
+    end
+  </TMPL_LOOP>
+</body>
+</html>
