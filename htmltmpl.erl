@@ -13,7 +13,7 @@
 %%
 -record(tstate, {phrases=[], priv=[]}).
 
--record(tspriv, {tag, attrs=[], attr_name, attr_end_func}).
+-record(tspriv, {tag, attrs=[], attr_name, attr_end_func, postend_func, data}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Read a template from a file and prepare it.
@@ -71,7 +71,8 @@ tmpl_match_phrase([H|T], Str, Ph_match) ->
 %%
 %% Tag default handlers
 %%
-hdlr_tag(Tag, Tag_attr_names, Tag_attr_hdlr, Tmpl, Tstate, Str_buf) ->
+hdlr_tag(Tag, Tag_attr_names, Tag_attr_hdlr, Tag_postend_hdlr,
+	 Tmpl, Tstate, Str_buf) ->
     case string:len(Str_buf) of
 	0 ->
 	    Tmpl_new = Tmpl;
@@ -80,7 +81,8 @@ hdlr_tag(Tag, Tag_attr_names, Tag_attr_hdlr, Tmpl, Tstate, Str_buf) ->
     end,
     Phrases_new = [mk_attr_phrases(Tag_attr_names)|Tstate#tstate.phrases],
     My_priv = #tspriv{tag=Tag,
-		      attr_end_func=Tag_attr_hdlr},
+		      attr_end_func=Tag_attr_hdlr,
+		      postend_func=Tag_postend_hdlr},
     Priv_new = [My_priv|Tstate#tstate.priv],
     Tstate_new = #tstate{phrases=Phrases_new, priv=Priv_new},
     {continue, Tmpl_new, Tstate_new}.
@@ -151,6 +153,9 @@ hdlr_var(Tmpl, Tstate, Str_buf, _Str) ->
 	     fun(T, TS, SB, S) ->
 		     hdlr_var_attr_end(T, TS, SB, S)
 	     end,
+	     fun(T, TS) ->
+		     {T, TS}
+	     end,
 	     Tmpl, Tstate, Str_buf).
 
 
@@ -171,6 +176,9 @@ hdlr_loop(Tmpl, Tstate, Str_buf, _Str) ->
 	     fun(T, TS, SB, S) ->
 		     hdlr_loop_attr_end(T, TS, SB, S)
 	     end,
+	     fun(T, TI, TS) ->
+		     hdlr_loop_postend(T, TI, TS)
+	     end,
 	     Tmpl, Tstate, Str_buf).
 
 
@@ -190,6 +198,15 @@ hdlr_loop_end(Tmpl, Tstate, Str_buf, _Str) ->
     {stop, Tmpl_new, Tstate}.
 
 
+hdlr_loop_postend(Tmpl, Tmpl_inner, Tstate) ->
+    [Mypriv|Priv] = Tstate#tstate.priv,
+    Tmpl_new = [{Mypriv#tspriv.tag,
+		Mypriv#tspriv.attrs,
+		lists:reverse(Tmpl_inner)}|Tmpl],
+    Tstate_new = Tstate#tstate{priv=Priv},
+    {Tmpl_new, Tstate_new}.
+
+
 %%
 %% TMPL_IF
 %%
@@ -198,6 +215,9 @@ hdlr_if(Tmpl, Tstate, Str_buf, _Str) ->
 	     ["NAME"],
 	     fun(T, TS, SB, S) ->
 		     hdlr_if_attr_end(T, TS, SB, S)
+	     end,
+	     fun(T, TI, TS) ->
+		     hdlr_if_postend(T, TI, TS)
 	     end,
 	     Tmpl, Tstate, Str_buf).
 
@@ -208,6 +228,19 @@ hdlr_if_attr_end(Tmpl, Tstate, _Str_buf, _Str) ->
     {start_inner, Tmpl, Tstate_new}.
 
 
+hdlr_if_else(Tmpl, Tstate, Str_buf, _Str) ->
+    case string:len(Str_buf) of
+	0 ->
+	    Tmpl_new = Tmpl;
+	_ ->
+	    Tmpl_new = [{text, Str_buf}|Tmpl]
+    end,
+    [Mypriv|Priv] = Tstate#tstate.priv,
+    Mypriv_new = Mypriv#tspriv{data=Tmpl_new},
+    Tstate_new = Tstate#tstate{priv=[Mypriv_new|Priv]},
+    {continue, [], Tstate_new}.
+
+
 hdlr_if_end(Tmpl, Tstate, Str_buf, _Str) ->
     case string:len(Str_buf) of
 	0 ->
@@ -216,6 +249,23 @@ hdlr_if_end(Tmpl, Tstate, Str_buf, _Str) ->
 	    Tmpl_new = [{text, Str_buf}|Tmpl]
     end,
     {stop, Tmpl_new, Tstate}.
+
+
+hdlr_if_postend(Tmpl, Tmpl_inner, Tstate) ->
+    [Mypriv|Priv] = Tstate#tstate.priv,
+    case Mypriv#tspriv.data of
+	undefined ->
+	    Data = [{data, lists:reverse(Tmpl_inner)}];
+	Tmpl_prev ->
+	    Data = [{data, lists:reverse(Tmpl_prev)},
+		    {data_else, lists:reverse(Tmpl_inner)}]
+    end,
+    Tmpl_new = [{Mypriv#tspriv.tag,
+		Mypriv#tspriv.attrs,
+		Data}|Tmpl],
+    Tstate_new = Tstate#tstate{priv=Priv},
+    {Tmpl_new, Tstate_new}.
+
 
 
 %%
@@ -275,11 +325,9 @@ make_tmpl(TH, Tmpl, Tstate, Str_buf, Str) ->
 	    {Tmpl_new1, Tstate_new1} = make_tmpl(TH, [], Tstate_new,
 						 "",
 						 ""),
-	    [My_priv|Priv] = Tstate_new1#tstate.priv,
-	    Tmpl_new2 = [{My_priv#tspriv.tag,
-			  My_priv#tspriv.attrs,
-			  lists:reverse(Tmpl_new1)}|Tmpl_new],
-	    Tstate_new2 = Tstate_new1#tstate{priv=Priv},
+	    [Mypriv|_] = Tstate_new1#tstate.priv,
+	    Func=Mypriv#tspriv.postend_func,
+	    {Tmpl_new2, Tstate_new2} = Func(Tmpl_new, Tmpl_new1, Tstate_new1),
 	    make_tmpl(TH, Tmpl_new2, Tstate_new2, "","");
 	stop ->
 	    % Stop of processing an inner template
@@ -304,6 +352,8 @@ make_tmpl(TH, Tmpl) ->
 		       func=fun(T, TS, SB, S) -> hdlr_loop_end(T, TS, SB, S) end},
 	       #phrase{text="<TMPL_IF ",
 		       func=fun(P, T, SB, S) -> hdlr_if(P, T, SB, S) end},
+	       #phrase{text="<TMPL_ELSE>",
+		       func=fun(P, T, SB, S) -> hdlr_if_else(P, T, SB, S) end},
 	       #phrase{text="</TMPL_IF>",
 		       func=fun(P, T, SB, S) -> hdlr_if_end(P, T, SB, S) end}],
     Tstate = #tstate{phrases=[Phrases], priv=[]},
@@ -396,17 +446,26 @@ subst_tmpl_loop_(Loop, [H|T], Str) ->
 %%
 subst_tmpl_if(If, Data) ->
     {ok, If_name} = tag_attr_get(If, "NAME"),
-    {_, _, If_tmpl} = If,
     case lists:keyfind(If_name, 1, Data) of
 	false ->
-	    {ok, ""};
+	    subst_tmpl_if_sect(If, data_else, Data);
 	{If_name, Value} ->
 	    case Value of
 		true ->
-		    {ok, htmltmpl:apply(If_tmpl, Data, "")};
+		    subst_tmpl_if_sect(If, data, Data);
 		false ->
-		    {ok, ""}
+		    subst_tmpl_if_sect(If, data_else, Data)
 	    end
+    end.
+
+
+subst_tmpl_if_sect(If, Sect, Data) ->
+    {_, _, If_data} = If,
+    case lists:keyfind(Sect, 1, If_data) of
+	false ->
+	    {ok, ""};
+	{Sect, Tmpl} ->
+	    {ok, htmltmpl:apply(Tmpl, Data, "")}
     end.
 
 
