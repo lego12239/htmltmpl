@@ -100,6 +100,14 @@ start() ->
 		    ]},
 	 #test{id="10",
 	       title="Test TMPL_IF with no var data",
+	       data=[]},
+	 #test{id="11",
+	       title="Test TMPL_IF with TMPL_ELSE",
+	       data=[{"v1", true},
+		     {"v2", false}
+		    ]},
+	 #test{id="12",
+	       title="Test TMPL_IF with TMPL_ELSE with no var data",
 	       data=[]}
 	],
     Report_fun = make_report_fun(T),
