@@ -108,6 +108,22 @@ start() ->
 		    ]},
 	 #test{id="12",
 	       title="Test TMPL_IF with TMPL_ELSE with no var data",
+	       data=[]},
+	 #test{id="13",
+	       title="Test TMPL_UNLESS",
+	       data=[{"v1", true},
+		     {"v2", false}
+		    ]},
+	 #test{id="14",
+	       title="Test TMPL_UNLESS with no var data",
+	       data=[]},
+	 #test{id="15",
+	       title="Test TMPL_UNLESS with TMPL_ELSE",
+	       data=[{"v1", true},
+		     {"v2", false}
+		    ]},
+	 #test{id="16",
+	       title="Test TMPL_UNLESS with TMPL_ELSE with no var data",
 	       data=[]}
 	],
     Report_fun = make_report_fun(T),
