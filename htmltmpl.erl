@@ -267,6 +267,20 @@ hdlr_if_postend(Tmpl, Tmpl_inner, Tstate) ->
     {Tmpl_new, Tstate_new}.
 
 
+%%
+%% TMPL_UNLESS
+%%
+hdlr_unless(Tmpl, Tstate, Str_buf, _Str) ->
+    hdlr_tag(tag_unless,
+	     ["NAME"],
+	     fun(T, TS, SB, S) ->
+		     hdlr_if_attr_end(T, TS, SB, S)
+	     end,
+	     fun(T, TI, TS) ->
+		     hdlr_if_postend(T, TI, TS)
+	     end,
+	     Tmpl, Tstate, Str_buf).
+
 
 %%
 %% Process a template state
@@ -355,6 +369,10 @@ make_tmpl(TH, Tmpl) ->
 	       #phrase{text="<TMPL_ELSE>",
 		       func=fun(P, T, SB, S) -> hdlr_if_else(P, T, SB, S) end},
 	       #phrase{text="</TMPL_IF>",
+		       func=fun(P, T, SB, S) -> hdlr_if_end(P, T, SB, S) end},
+	       #phrase{text="<TMPL_UNLESS ",
+		       func=fun(P, T, SB, S) -> hdlr_unless(P, T, SB, S) end},
+	       #phrase{text="</TMPL_UNLESS>",
 		       func=fun(P, T, SB, S) -> hdlr_if_end(P, T, SB, S) end}],
     Tstate = #tstate{phrases=[Phrases], priv=[]},
     {Tmpl_new, _Tstate} = make_tmpl(TH, Tmpl, Tstate, "", ""),
@@ -470,6 +488,24 @@ subst_tmpl_if_sect(If, Sect, Data) ->
 
 
 %%
+%% Unless
+%%
+subst_tmpl_unless(Unless, Data) ->
+    {ok, Unless_name} = tag_attr_get(Unless, "NAME"),
+    case lists:keyfind(Unless_name, 1, Data) of
+	false ->
+	    subst_tmpl_if_sect(Unless, data, Data);
+	{Unless_name, Value} ->
+	    case Value of
+		true ->
+		    subst_tmpl_if_sect(Unless, data_else, Data);
+		false ->
+		    subst_tmpl_if_sect(Unless, data, Data)
+	    end
+    end.
+
+
+%%
 %% Apply a data to a compiled template
 %% Get:
 %%  Tmpl - a compiled template
@@ -494,6 +530,9 @@ apply([H|Tmpl], Data, Str) ->
 	    htmltmpl:apply(Tmpl, Data, Str ++ Loop_val);
 	{tag_if, _, _} ->
 	    {ok, If_val} = subst_tmpl_if(H, Data),
-	    htmltmpl:apply(Tmpl, Data, Str ++ If_val)
+	    htmltmpl:apply(Tmpl, Data, Str ++ If_val);
+	{tag_unless, _, _} ->
+	    {ok, Unless_val} = subst_tmpl_unless(H, Data),
+	    htmltmpl:apply(Tmpl, Data, Str ++ Unless_val)
     end.
 
