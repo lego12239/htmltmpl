@@ -1,5 +1,5 @@
 %%%
-%%% Version 0.2.0
+%%% Version 0.3.0
 %%%
 -module(htmltmpl).
 -export([open/1, apply/2, apply/3]).
