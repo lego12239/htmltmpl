@@ -1,15 +1,19 @@
-.PHONY: clean test
+.PHONY: build clean test doc
 
 
-htmltmpl.beam: htmltmpl.erl
-	erl -compile $^
+build:
+	rebar compile
+
+test: build
+	cd test && \
+	erlc -I ../.. test.erl && \
+	echo '\n\n' && \
+	erl -noinput -pa ../ebin -s test -s init stop
 
 clean:
 	find . -name '*~' -exec rm -f '{}' \+
-	rm -f htmltmpl.beam test/test.beam
+	rm -f test/test.beam
+	rebar clean
 
-test: htmltmpl.beam
-	cd test && \
-	erl -compile test.erl && \
-	echo '\n\n' && \
-	erl -noinput -pa .. -s test -s init stop
+doc:
+	rebar doc

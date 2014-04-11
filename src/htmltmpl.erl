@@ -1,8 +1,6 @@
-%%%
-%%% Version 0.3.0
-%%%
 -module(htmltmpl).
--export([open/1, apply/2, apply/3]).
+-export([open/1, apply/2]).
+-compile({no_auto_import,[apply/3]}).
 
 -record(phrase, {text, func}).
 
@@ -14,6 +12,49 @@
 -record(tstate, {phrases=[], priv=[]}).
 
 -record(tspriv, {tag, attrs=[], attr_name, attr_end_func, postend_func, data}).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% API
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% @spec (Fname) -> {ok, Tmpl} | {error, Reason}
+%%   Fname = string(),
+%%   Tmpl = [any()],
+%%   Reason = any()
+%%
+%% @doc Compile a html template from a file.
+%%      Return a compiled template, that can be passed to apply/2.
+%%
+open(Fname) ->
+    case file:open(Fname, [read]) of
+	{ok, FH} ->
+	    Tmpl = make_tmpl({fh, FH}),
+	    case file:close(FH) of
+		ok ->
+		    {ok, Tmpl};
+		{error, Reason} ->
+		    {error, Reason}
+	    end;
+	{error, Reason} ->
+	    {error, Reason}
+    end.
+
+
+%% @spec (Tmpl, Data) -> String
+%%   Tmpl = [any()],
+%%   Data = [any()],
+%%   String = string()
+%%
+%% @doc Apply a data to a compiled template.
+%%
+apply(Tmpl, Data) ->
+    apply(Tmpl, Data, "").
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Internals
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Read a template from a file and prepare it.
@@ -382,20 +423,6 @@ make_tmpl(TH) ->
     Tmpl = make_tmpl(TH, []),
     lists:reverse(Tmpl).
 
-open(Fname) ->
-    case file:open(Fname, [read]) of
-	{ok, FH} ->
-	    Tmpl = make_tmpl({fh, FH}),
-	    case file:close(FH) of
-		ok ->
-		    {ok, Tmpl};
-		{error, Reason} ->
-		    {error, Reason}
-	    end;
-	{error, Reason} ->
-	    {error, Reason}
-    end.
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Apply a data to a compiled template
@@ -455,7 +482,7 @@ subst_tmpl_loop_(Loop, Data) ->
 subst_tmpl_loop_(_, [], Str) ->
     {ok, Str};
 subst_tmpl_loop_(Loop, [H|T], Str) ->
-    Output = htmltmpl:apply(Loop, H, ""),
+    Output = apply(Loop, H, ""),
     subst_tmpl_loop_(Loop, T, Str ++ Output).
 
 
@@ -483,7 +510,7 @@ subst_tmpl_if_sect(If, Sect, Data) ->
 	false ->
 	    {ok, ""};
 	{Sect, Tmpl} ->
-	    {ok, htmltmpl:apply(Tmpl, Data, "")}
+	    {ok, apply(Tmpl, Data, "")}
     end.
 
 
@@ -505,34 +532,23 @@ subst_tmpl_unless(Unless, Data) ->
     end.
 
 
-%%
-%% Apply a data to a compiled template
-%% Get:
-%%  Tmpl - a compiled template
-%%  Data - a data to be inserted into a template
-%% Return:
-%%  Tmpl_str - a final result
-%%
-apply(Tmpl, Data) ->
-    htmltmpl:apply(Tmpl, Data, "").
-
 apply([], _, Str) ->
     Str;
 apply([H|Tmpl], Data, Str) ->
     case H of
 	{text, S} ->
-	    htmltmpl:apply(Tmpl, Data, Str ++ S);
+	    apply(Tmpl, Data, Str ++ S);
 	{tag_var, _, _} ->
 	    {ok, Var_val} = subst_tmpl_var(H, Data),
-	    htmltmpl:apply(Tmpl, Data, Str ++ Var_val);
+	    apply(Tmpl, Data, Str ++ Var_val);
 	{tag_loop, _, _} ->
 	    {ok, Loop_val} = subst_tmpl_loop(H, Data),
-	    htmltmpl:apply(Tmpl, Data, Str ++ Loop_val);
+	    apply(Tmpl, Data, Str ++ Loop_val);
 	{tag_if, _, _} ->
 	    {ok, If_val} = subst_tmpl_if(H, Data),
-	    htmltmpl:apply(Tmpl, Data, Str ++ If_val);
+	    apply(Tmpl, Data, Str ++ If_val);
 	{tag_unless, _, _} ->
 	    {ok, Unless_val} = subst_tmpl_unless(H, Data),
-	    htmltmpl:apply(Tmpl, Data, Str ++ Unless_val)
+	    apply(Tmpl, Data, Str ++ Unless_val)
     end.
 

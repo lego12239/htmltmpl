@@ -1,0 +1,14 @@
+{application, htmltmpl,
+ [
+  {description, "An Erlang htmltmpl library"},
+  {vsn, "0.4.0"},
+  {modules, [
+             htmltmpl
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
