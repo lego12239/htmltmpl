@@ -10,6 +10,12 @@ constructs:
 <TMPL_IF NAME=bool_var>...<TMPL_ELSE>...</TMPL_IF>
 <TMPL_UNLESS NAME=bool_var>...<TMPL_ELSE>...</TMPL_UNLESS>
 
+Build
+=====
+
+make && make test
+
+
 Using
 =====
 
